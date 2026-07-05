@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>棠下每日数据看板 - 2026年7月</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Noto Sans SC',-apple-system,'Segoe UI',sans-serif;background:#eef1f6;color:#1a1a2e;padding:18px}
+.page{max-width:1620px;margin:0 auto}
+
+/* ===== 顶栏 ===== */
+.topbar{background:linear-gradient(135deg,#0d1b4a 0%,#1a237e 50%,#283593 100%);color:#fff;padding:16px 28px;border-radius:14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;box-shadow:0 4px 20px rgba(26,35,126,.25);position:relative;overflow:hidden}
+.topbar::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3),transparent)}
+.topbar h1{font-size:19px;letter-spacing:1.5px;font-weight:700;display:flex;align-items:center;gap:8px}
+.topbar .meta{font-size:12px;opacity:.8;display:flex;gap:14px;align-items:center}
+.topbar .meta span{display:flex;align-items:center;gap:4px}
+.topbar .date-bar{width:100%;font-size:10px;color:rgba(255,255,255,.6);margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,.12);padding-top:6px}
+
+/* ===== 汇总卡片 ===== */
+.summary-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:14px}
+.summary-card{background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 2px 8px rgba(0,0,0,.05);text-align:center;position:relative;overflow:hidden;border:1px solid rgba(0,0,0,.04);transition:all .2s ease}
+.summary-card:hover{box-shadow:0 6px 20px rgba(0,0,0,.1);transform:translateY(-2px)}
+.summary-card::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:0 0 12px 12px}
+.summary-card.s1::after{background:linear-gradient(90deg,#1565c0,#42a5f5)}
+.summary-card.s2::after{background:linear-gradient(90deg,#e65100,#ff9800)}
+.summary-card.s3::after{background:linear-gradient(90deg,#7b1fa2,#ab47bc)}
+.summary-card.s4::after{background:linear-gradient(90deg,#2e7d32,#66bb6a)}
+.summary-card.s5::after{background:linear-gradient(90deg,#c62828,#ef5350)}
+.summary-card .num{font-size:28px;font-weight:700;font-family:'Menlo','Consolas',monospace;letter-spacing:-.5px}
+.summary-card .label{font-size:11px;color:#888;margin-top:4px;letter-spacing:.3px}
+
+/* ===== 面板 ===== */
+.panel{background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);overflow:hidden;margin-bottom:14px;border:1px solid rgba(0,0,0,.03)}
+.role-header{background:linear-gradient(90deg,#e8eaf6,#f5f5fa);border-radius:10px;padding:10px 18px;margin:10px 14px 6px;font-size:15px;font-weight:700;color:#1a237e;display:flex;justify-content:space-between;align-items:center;border-left:4px solid #283593}
+.role-header .rc{font-size:12px;font-weight:400;color:#888;background:#fff;padding:2px 10px;border-radius:20px}
+
+/* ===== 表格 ===== */
+.tbl-wrap{overflow-x:auto;padding:0 14px 14px}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:1640px;border-radius:8px;overflow:hidden}
+th{background:#e8eaf6;color:#1a237e;font-weight:600;padding:8px 8px;text-align:center;font-size:11px;position:sticky;top:0;z-index:1;border-right:1px solid #d0d4e8;border-bottom:2px solid #9fa8da;white-space:nowrap;transition:background .15s}
+th:last-child{border-right:none}
+td{padding:6px 8px;border-bottom:1px solid #f0f0f4;text-align:center;white-space:nowrap;transition:background .12s}
+tr:hover td{background:#f0f4ff!important}
+.tr{text-align:center;font-variant-numeric:tabular-nums;font-family:'Menlo','Consolas',monospace;font-size:11.5px}
+.tl{text-align:left;padding-left:10px}
+.p{color:#2e7d32}
+.n{color:#c62828}
+.na{color:#d0d0d0}
+.bold{font-weight:700;color:#1a237e}
+.hl-name{font-weight:600;color:#1a237e}
+.hl-role{font-size:10px;color:#aaa}
+.cat-header{background:#283593!important;color:#fff!important;font-size:11.5px;letter-spacing:1px}
+.cat-sub{background:#e8eaf6!important;font-size:10.5px;color:#1a237e;font-weight:600;border-bottom:2px solid #9fa8da!important}
+
+/* 得分徽章 */
+.score-badge{display:inline-block;min-width:30px;padding:3px 8px;border-radius:6px;font-weight:700;font-size:11.5px;font-family:'Menlo',monospace;text-align:center}
+.score-high{background:#e8f5e9;color:#2e7d32}
+.score-mid{background:#fff8e1;color:#f57f17}
+.score-low{background:#fce4ec;color:#c62828}
+.score-cw{background:#e0f2f1;color:#00695c}
+
+/* 质态徽章 - 按严重程度分档 */
+.zt-badge{display:inline-block;min-width:24px;padding:3px 8px;border-radius:6px;font-weight:700;font-size:11.5px;font-family:'Menlo',monospace;text-align:center}
+.zt-light{background:#fff3e0;color:#e65100}
+.zt-mid{background:#ffe0b2;color:#bf360c}
+.zt-severe{background:#ffcdd2;color:#b71c1c}
+
+/* 完成率背景 */
+.rate-bg{display:inline-block;min-width:40px;padding:3px 8px;border-radius:6px;font-weight:600;font-size:11px;text-align:center}
+.rate-high{background:#e8f5e9;color:#2e7d32}
+.rate-mid{background:#fff3e0;color:#e65100}
+.rate-low{background:#fce4ec;color:#c62828}
+
+/* 固定列 */
+td:first-child{position:sticky;left:0;z-index:3;background:#fff;border-right:2px solid #c5cae9!important}
+th:first-child{position:sticky;left:0;z-index:3;border-right:2px solid #c5cae9!important}
+td:nth-child(2){position:sticky;left:80px;z-index:2;background:#fff;border-right:1px solid #e0e0e0!important}
+th:nth-child(2){position:sticky;left:80px;z-index:2;border-right:1px solid #e0e0e0!important}
+.cat-header th:first-child,.cat-header th:nth-child(2){background:#283593!important}
+tr:nth-child(even) td:nth-child(n+3){background:#f8faff}
+tr:nth-child(even) td:first-child{background:#f5f7fc}
+tr:nth-child(even) td:nth-child(2){background:#f5f7fc}
+tr:hover td:first-child{background:#eef2fa!important}
+tr:hover td:nth-child(2){background:#eef2fa!important}
+
+/* 合计行 */
+tr.total-row td{background:#e8eaf6!important;font-weight:700;border-top:2px solid #283593!important;font-size:12px}
+tr.total-row td:first-child{background:#d1d5ee!important;color:#1a237e}
+tr.total-row:hover td{background:#d1d5ee!important}
+
+/* 领先落后面板 */
+.ll-panel{padding:12px 16px;font-size:11px;color:#555}
+.ll-panel .ll-title{font-weight:700;color:#1a237e;border-bottom:2px solid #e8eaf6;padding-bottom:5px;margin-bottom:8px;font-size:13px}
+.ll-item{display:flex;gap:16px;flex-wrap:wrap;padding:3px 0}
+.ll-item .ll-cat{font-weight:600;color:#1a237e;min-width:120px}
+.ll-item .ll-top,.ll-item .ll-bot{font-size:11px}
+
+/* 底部 */
+.footer{text-align:center;font-size:11px;color:#bbb;margin:16px 0 6px;letter-spacing:.5px}
+.note-panel{padding:10px 16px;font-size:11px;color:#888;line-height:1.8;border-radius:8px;margin:0 14px 14px;background:#fafafa;border:1px solid #f0f0f0}
+</style>
+</head>
+<body>
+<div class="page">
+<div class="topbar">
+  <h1>📊 棠下每日数据看板</h1>
+  <div class="meta"><span>📅 2026年7月</span><span>👤 28 人</span></div>
+  <div class="date-bar">📡 新装~06/30 存量~06/30 杠保~06/30 质态~06/30 关键一单~06/30 拆挽~?</div>
+</div>
+
+<div class="summary-row">
+  <div class="summary-card s1"><div class="num" style="color:#1565c0;">36964</div><div class="label">划小棠下新装积分</div></div>
+  <div class="summary-card s2"><div class="num" style="color:#e65100;">237.7</div><div class="label">划小棠下新装高套数</div></div>
+  <div class="summary-card s3"><div class="num" style="color:#7b1fa2;">2153</div><div class="label">棠下揽装存量积分</div></div>
+  <div class="summary-card s4"><div class="num" style="color:#00897b;">38.2</div><div class="label">棠下揽装存量高套数</div></div>
+  <div class="summary-card s5"><div class="num" style="color:#2e7d32;">1947</div><div class="label">拆挽成功积分</div></div>
+  <div class="summary-card s5"><div class="num" style="color:#c62828;">15</div><div class="label">拆挽成功数</div></div>
+</div>
+
+<div class="panel">
+<div class="role-header">片区经理<span class="rc">11人</span></div>
+<div class="tbl-wrap"><table><thead>
+<tr class="cat-header">
+  <th rowspan="2" style="min-width:80px;">姓名</th>
+  <th rowspan="2" style="min-width:56px;">岗位</th>
+  <th rowspan="2">CP</th>
+  <th rowspan="2">得分预测</th>
+  <th colspan="4">① 价值积分</th>
+  <th colspan="8">② 增存高套</th>
+  <th colspan="4">③ 杠保</th>
+  <th colspan="5">④ 拆挽单</th>
+  <th colspan="5">⑤ 质态相关</th>
+</tr>
+<tr class="cat-sub">
+  <th>新装积分</th><th>存量积分(CP)</th><th>合计</th><th>上月</th>
+  <th>新装目标</th><th>新装折算</th><th>新装完成率</th><th>新装得分</th><th>存量目标</th><th>存量折算</th><th>存量完成率</th><th>存量得分</th>
+  <th>成功量</th><th>总业务量</th><th>成功率</th><th>得分</th>
+  <th>派单数</th><th>转化(CP)</th><th>转化率</th><th>挽留积分</th><th>得分</th>
+  <th>T0未满卡</th><th>T0无效</th><th>T0无托收</th><th>T1无效</th><th>T1无托收</th>
+</tr></thead><tbody><tr>
+<td class="tl hl-name">徐仰德</td><td class="hl-role">片区经理</td><td>房开平</td>
+<td><span class="score-badge score-low">11.2</span></td>
+<td class="tr p">1045.00</td>
+<td class="tr p">40.00</td>
+<td class="tr bold">1085.00</td><td class="tr na">-</td>
+<td class="tr">18</td>
+<td class="tr p">5.90</td>
+<td class="tr"><span class="rate-bg rate-low">32.8%</span></td>
+<td><span class="score-badge score-low">8.2</span></td>
+<td class="tr">9</td>
+<td class="tr p">0.50</td>
+<td class="tr"><span class="rate-bg rate-low">5.6%</span></td>
+<td><span class="score-badge score-low">1.4</span></td>
+<td class="tr">1</td><td class="tr">6</td>
+<td class="tr"><span class="rate-bg rate-low">16.7%</span></td>
+<td><span class="score-badge score-low">1.7</span></td>
+<td class="tr">3</td><td class="tr">0</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr">0.00</td>
+<td><span class="score-badge score-cw">+0</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-severe">15</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+</tr><tr>
+<td class="tl hl-name">林梓纯</td><td class="hl-role">片区经理</td><td>韦海毅</td>
+<td><span class="score-badge score-low">26.8</span></td>
+<td class="tr p">2214.00</td>
+<td class="tr p">118.00</td>
+<td class="tr bold">2332.00</td><td class="tr na">-</td>
+<td class="tr">18</td>
+<td class="tr p">13.20</td>
+<td class="tr"><span class="rate-bg rate-mid">73.3%</span></td>
+<td><span class="score-badge score-mid">18.3</span></td>
+<td class="tr">9</td>
+<td class="tr p">1.50</td>
+<td class="tr"><span class="rate-bg rate-low">16.7%</span></td>
+<td><span class="score-badge score-low">4.2</span></td>
+<td class="tr">2</td><td class="tr">9</td>
+<td class="tr"><span class="rate-bg rate-low">22.2%</span></td>
+<td><span class="score-badge score-low">3.3</span></td>
+<td class="tr">3</td><td class="tr">1</td>
+<td class="tr"><span class="rate-bg rate-low">33.3%</span></td>
+<td class="tr">59.00</td>
+<td><span class="score-badge score-cw">+1</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-severe">22</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">3</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+</tr><tr>
+<td class="tl hl-name">林洁纯</td><td class="hl-role">片区经理</td><td>蔡锐填</td>
+<td><span class="score-badge score-mid">44.1</span></td>
+<td class="tr p">2275.00</td>
+<td class="tr p">349.00</td>
+<td class="tr bold">2624.00</td><td class="tr na">-</td>
+<td class="tr">18</td>
+<td class="tr p">13.20</td>
+<td class="tr"><span class="rate-bg rate-mid">73.3%</span></td>
+<td><span class="score-badge score-mid">18.3</span></td>
+<td class="tr">9</td>
+<td class="tr p">6.50</td>
+<td class="tr"><span class="rate-bg rate-mid">72.2%</span></td>
+<td><span class="score-badge score-mid">18.1</span></td>
+<td class="tr">4</td><td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-mid">50.0%</span></td>
+<td><span class="score-badge score-mid">6.7</span></td>
+<td class="tr">2</td><td class="tr">1</td>
+<td class="tr"><span class="rate-bg rate-mid">50.0%</span></td>
+<td class="tr">399.00</td>
+<td><span class="score-badge score-cw">+1</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-severe">19</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-mid">6</span></td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">林浩敏</td><td class="hl-role">片区经理</td><td>邓采杰</td>
+<td><span class="score-badge score-low">11.7</span></td>
+<td class="tr p">1027.00</td>
+<td class="tr ">0.00</td>
+<td class="tr bold">1027.00</td><td class="tr na">-</td>
+<td class="tr">18</td>
+<td class="tr p">5.80</td>
+<td class="tr"><span class="rate-bg rate-low">32.2%</span></td>
+<td><span class="score-badge score-low">8.1</span></td>
+<td class="tr">9</td>
+<td class="tr ">0.00</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td><span class="score-badge score-low">0.0</span></td>
+<td class="tr">1</td><td class="tr">3</td>
+<td class="tr"><span class="rate-bg rate-low">33.3%</span></td>
+<td><span class="score-badge score-low">1.7</span></td>
+<td class="tr">13</td><td class="tr">2</td>
+<td class="tr"><span class="rate-bg rate-low">15.4%</span></td>
+<td class="tr">258.00</td>
+<td><span class="score-badge score-cw">+2</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-severe">11</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-mid">5</span></td>
+</tr><tr>
+<td class="tl hl-name">李土金</td><td class="hl-role">片区经理</td><td>李若洪</td>
+<td><span class="score-badge score-low">27.8</span></td>
+<td class="tr p">368.00</td>
+<td class="tr p">360.00</td>
+<td class="tr bold">728.00</td><td class="tr na">-</td>
+<td class="tr">18</td>
+<td class="tr p">2.80</td>
+<td class="tr"><span class="rate-bg rate-low">15.6%</span></td>
+<td><span class="score-badge score-low">3.9</span></td>
+<td class="tr">9</td>
+<td class="tr p">8.00</td>
+<td class="tr"><span class="rate-bg rate-high">88.9%</span></td>
+<td><span class="score-badge score-high">22.2</span></td>
+<td class="tr">1</td><td class="tr">1</td>
+<td class="tr"><span class="rate-bg rate-high">100.0%</span></td>
+<td><span class="score-badge score-low">1.7</span></td>
+<td class="tr">9</td><td class="tr">0</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr">0.00</td>
+<td><span class="score-badge score-cw">+0</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-mid">4</span></td>
+<td class="tr"><span class="zt-badge zt-light">3</span></td>
+</tr><tr>
+<td class="tl hl-name">李莉</td><td class="hl-role">片区经理</td><td>陈锦聪</td>
+<td><span class="score-badge score-mid">37.6</span></td>
+<td class="tr p">590.00</td>
+<td class="tr p">349.00</td>
+<td class="tr bold">939.00</td><td class="tr na">-</td>
+<td class="tr">18</td>
+<td class="tr p">3.00</td>
+<td class="tr"><span class="rate-bg rate-low">16.7%</span></td>
+<td><span class="score-badge score-low">4.2</span></td>
+<td class="tr">9</td>
+<td class="tr p">7.00</td>
+<td class="tr"><span class="rate-bg rate-mid">77.8%</span></td>
+<td><span class="score-badge score-mid">19.4</span></td>
+<td class="tr">7</td><td class="tr">10</td>
+<td class="tr"><span class="rate-bg rate-mid">70.0%</span></td>
+<td><span class="score-badge score-high">11.0</span></td>
+<td class="tr">10</td><td class="tr">3</td>
+<td class="tr"><span class="rate-bg rate-low">30.0%</span></td>
+<td class="tr">389.00</td>
+<td><span class="score-badge score-cw">+3</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-mid">9</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-mid">4</span></td>
+<td class="tr"><span class="zt-badge zt-mid">8</span></td>
+</tr><tr>
+<td class="tl hl-name">卢少林</td><td class="hl-role">片区经理</td><td>-</td>
+<td><span class="score-badge score-low">0.0</span></td>
+<td class="tr ">0.00</td>
+<td class="tr ">0.00</td>
+<td class="tr bold">0.00</td><td class="tr na">-</td>
+<td class="tr">18</td>
+<td class="tr ">0.00</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td><span class="score-badge score-low">0.0</span></td>
+<td class="tr">9</td>
+<td class="tr ">0.00</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td><span class="score-badge score-low">0.0</span></td>
+<td class="tr">0</td><td class="tr">0</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td><span class="score-badge score-low">0.0</span></td>
+<td class="tr">0</td><td class="tr">0</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr">0.00</td>
+<td><span class="score-badge score-cw">+0</span></td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">徐小安</td><td class="hl-role">片区经理</td><td>谢维锐</td>
+<td><span class="score-badge score-low">26.0</span></td>
+<td class="tr p">1046.00</td>
+<td class="tr p">40.00</td>
+<td class="tr bold">1086.00</td><td class="tr na">-</td>
+<td class="tr">18</td>
+<td class="tr p">6.20</td>
+<td class="tr"><span class="rate-bg rate-low">34.4%</span></td>
+<td><span class="score-badge score-low">8.6</span></td>
+<td class="tr">9</td>
+<td class="tr p">0.50</td>
+<td class="tr"><span class="rate-bg rate-low">5.6%</span></td>
+<td><span class="score-badge score-low">1.4</span></td>
+<td class="tr">7</td><td class="tr">14</td>
+<td class="tr"><span class="rate-bg rate-mid">50.0%</span></td>
+<td><span class="score-badge score-high">11.0</span></td>
+<td class="tr">9</td><td class="tr">5</td>
+<td class="tr"><span class="rate-bg rate-mid">55.6%</span></td>
+<td class="tr">435.00</td>
+<td><span class="score-badge score-cw">+5</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-mid">6</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">卢勇杭</td><td class="hl-role">片区经理</td><td>黄际文</td>
+<td><span class="score-badge score-low">19.9</span></td>
+<td class="tr p">947.00</td>
+<td class="tr ">0.00</td>
+<td class="tr bold">947.00</td><td class="tr na">-</td>
+<td class="tr">18</td>
+<td class="tr p">5.70</td>
+<td class="tr"><span class="rate-bg rate-low">31.7%</span></td>
+<td><span class="score-badge score-low">7.9</span></td>
+<td class="tr">9</td>
+<td class="tr ">0.00</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td><span class="score-badge score-low">0.0</span></td>
+<td class="tr">7</td><td class="tr">13</td>
+<td class="tr"><span class="rate-bg rate-mid">53.8%</span></td>
+<td><span class="score-badge score-high">11.0</span></td>
+<td class="tr">1</td><td class="tr">1</td>
+<td class="tr"><span class="rate-bg rate-high">100.0%</span></td>
+<td class="tr">169.00</td>
+<td><span class="score-badge score-cw">+1</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-mid">4</span></td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">卢井钦</td><td class="hl-role">片区经理</td><td>潘庆洪</td>
+<td><span class="score-badge score-low">32.1</span></td>
+<td class="tr p">1741.00</td>
+<td class="tr p">120.00</td>
+<td class="tr bold">1861.00</td><td class="tr na">-</td>
+<td class="tr">18</td>
+<td class="tr p">11.90</td>
+<td class="tr"><span class="rate-bg rate-mid">66.1%</span></td>
+<td><span class="score-badge score-mid">16.5</span></td>
+<td class="tr">9</td>
+<td class="tr p">2.50</td>
+<td class="tr"><span class="rate-bg rate-low">27.8%</span></td>
+<td><span class="score-badge score-low">6.9</span></td>
+<td class="tr">4</td><td class="tr">19</td>
+<td class="tr"><span class="rate-bg rate-low">21.1%</span></td>
+<td><span class="score-badge score-mid">6.7</span></td>
+<td class="tr">12</td><td class="tr">2</td>
+<td class="tr"><span class="rate-bg rate-low">16.7%</span></td>
+<td class="tr">238.00</td>
+<td><span class="score-badge score-cw">+2</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-severe">14</span></td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+</tr><tr>
+<td class="tl hl-name">邝晓锐</td><td class="hl-role">片区经理</td><td>何瑞辉</td>
+<td><span class="score-badge score-low">24.2</span></td>
+<td class="tr p">1059.00</td>
+<td class="tr p">110.00</td>
+<td class="tr bold">1169.00</td><td class="tr na">-</td>
+<td class="tr">18</td>
+<td class="tr p">6.20</td>
+<td class="tr"><span class="rate-bg rate-low">34.4%</span></td>
+<td><span class="score-badge score-low">8.6</span></td>
+<td class="tr">9</td>
+<td class="tr p">2.00</td>
+<td class="tr"><span class="rate-bg rate-low">22.2%</span></td>
+<td><span class="score-badge score-low">5.6</span></td>
+<td class="tr">6</td><td class="tr">10</td>
+<td class="tr"><span class="rate-bg rate-mid">60.0%</span></td>
+<td><span class="score-badge score-high">10.0</span></td>
+<td class="tr">4</td><td class="tr">0</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr">0.00</td>
+<td><span class="score-badge score-cw">+0</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr"><span class="zt-badge zt-severe">11</span></td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-mid">4</span></td>
+</tr><tr class="total-row">
+<td class="tl" style="color:#1a237e;">合计</td><td></td><td></td><td><span class="score-badge score-high">32.6</span></td>
+<td class="tr">12312.00</td>
+<td class="tr">1486.00</td>
+<td class="tr">13798.00</td><td class="tr na">-</td>
+<td class="tr">198</td>
+<td class="tr">73.90</td>
+<td class="tr"><span class="rate-bg rate-low">37.3%</span></td>
+<td><span class="score-badge score-high">9.3</span></td>
+<td class="tr">99</td>
+<td class="tr">28.50</td>
+<td class="tr"><span class="rate-bg rate-low">28.8%</span></td>
+<td><span class="score-badge score-high">7.2</span></td>
+<td class="tr">40</td><td class="tr">93</td>
+<td class="tr"><span class="rate-bg rate-low">43.0%</span></td><td><span class="score-badge score-high">6.1</span></td>
+<td class="tr">66</td><td class="tr">15</td>
+<td class="tr"><span class="rate-bg rate-low">22.7%</span></td>
+<td class="tr">1947.00</td><td><span class="score-badge score-cw">+10</span></td>
+<td class="tr"><span class="zt-badge zt-mid">6</span></td>
+<td class="tr"><span class="zt-badge zt-severe">113</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-severe">21</span></td>
+<td class="tr"><span class="zt-badge zt-severe">25</span></td>
+</tr></tbody></table></div></div>
+<div class="panel" style="padding:10px 14px;font-size:11px;color:#444;">
+<div style="font-weight:700;color:#1a237e;border-bottom:2px solid #e8eaf6;padding-bottom:4px;margin-bottom:6px;">📊 片区经理 各指标领先落后分析</div>
+<div style="margin-bottom:6px;"><span style="font-weight:600;color:#1a237e;">① 价值积分</span><br><div style="padding-left:20px;font-size:11px;"><span style="color:#2e7d32;">▲ <b>林洁纯</b> 2624.00</span>&nbsp;&nbsp;<span style="color:#2e7d32;">▲ <b>林梓纯</b> 2332.00</span>&nbsp;&nbsp;</div><div style="padding-left:20px;font-size:11px;"><span style="color:#c62828;">▼ <b>卢少林</b> 0.00</span>&nbsp;&nbsp;<span style="color:#c62828;">▼ <b>李土金</b> 728.00</span>&nbsp;&nbsp;</div></div>
+<div style="margin-bottom:6px;"><span style="font-weight:600;color:#1a237e;">② 增存高套完成率</span><br><div style="padding-left:20px;font-size:11px;"><span style="color:#2e7d32;">▲ <b>林洁纯</b> 73.0%</span>&nbsp;&nbsp;<span style="color:#2e7d32;">▲ <b>林梓纯</b> 54.4%</span>&nbsp;&nbsp;</div><div style="padding-left:20px;font-size:11px;"><span style="color:#c62828;">▼ <b>卢少林</b> 0.0%</span>&nbsp;&nbsp;<span style="color:#c62828;">▼ <b>卢勇杭</b> 21.1%</span>&nbsp;&nbsp;</div></div>
+<div style="margin-bottom:6px;"><span style="font-weight:600;color:#1a237e;">③ 杠保成功率</span><br><div style="padding-left:20px;font-size:11px;"><span style="color:#2e7d32;">▲ <b>李土金</b> 100.0%</span>&nbsp;&nbsp;<span style="color:#2e7d32;">▲ <b>李莉</b> 70.0%</span>&nbsp;&nbsp;</div><div style="padding-left:20px;font-size:11px;"><span style="color:#c62828;">▼ <b>卢少林</b> 0.0%</span>&nbsp;&nbsp;<span style="color:#c62828;">▼ <b>徐仰德</b> 16.7%</span>&nbsp;&nbsp;</div></div>
+<div style="margin-bottom:2px;"><span style="font-weight:600;color:#1a237e;">⑤ 质态关注</span></div>
+<div style="padding-left:20px;font-size:11px;"><span style="color:#c62828;">⚠️ <b>林梓纯</b> 共27项异常：T0无效22、T1无效3、T1无托收2</span></div><div style="padding-left:20px;font-size:11px;"><span style="color:#c62828;">⚠️ <b>林洁纯</b> 共26项异常：T0未满卡1、T0无效19、T1无效6</span></div><div style="padding-left:20px;font-size:11px;"><span style="color:#c62828;">⚠️ <b>李莉</b> 共21项异常：T0无效9、T1无效4、T1无托收8</span></div>
+</div>
+
+<div class="panel">
+<div class="role-header">片区服务经理<span class="rc">17人</span></div>
+<div class="tbl-wrap"><table><thead>
+<tr class="cat-header">
+  <th rowspan="2" style="min-width:80px;">姓名</th>
+  <th rowspan="2" style="min-width:56px;">岗位</th>
+  <th rowspan="2">CP</th>
+  <th colspan="5">① 价值积分</th>
+  <th colspan="6">② 增存高套</th>
+  <th colspan="4">③ 杠保</th>
+  <th colspan="3">④ 关键一单</th>
+  <th colspan="5">⑤ 质态相关</th>
+</tr>
+<tr class="cat-sub">
+  <th>新装积分</th><th>存量积分</th><th>合计(指标1100)</th><th>积分完成率</th><th>上月</th>
+  <th>新装折算</th><th>存量折算</th><th>总计</th><th>目标</th><th>完成率</th><th>缺口</th>
+  <th>成功量</th><th>总业务量</th><th>成功率</th><th>缺口</th>
+  <th>派单</th><th>转化</th><th>转化率</th>
+  <th>T0未满卡</th><th>T0无效</th><th>T0无托收</th><th>T1无效</th><th>T1无托收</th>
+</tr></thead><tbody><tr>
+<td class="tl hl-name">徐显泽</td><td class="hl-role">片区服务经理</td><td>-</td>
+<td class="tr p">919.00</td>
+<td class="tr p">227.00</td>
+<td class="tr bold">1146.00</td>
+<td class="tr"><span class="rate-bg rate-high">104.2%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">5.40</td>
+<td class="tr p">3.00</td>
+<td class="tr bold">8.40</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-high">105.0%</span></td>
+<td class="tr ">0.00</td>
+<td class="tr">3</td><td class="tr">16</td>
+<td class="tr"><span class="rate-bg rate-low">18.8%</span></td>
+<td class="tr">3.00</td>
+<td class="tr">0</td><td class="tr">0</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-mid">9</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-mid">6</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+</tr><tr>
+<td class="tl hl-name">谢国栋</td><td class="hl-role">片区服务经理</td><td>-</td>
+<td class="tr p">1230.00</td>
+<td class="tr p">200.00</td>
+<td class="tr bold">1430.00</td>
+<td class="tr"><span class="rate-bg rate-high">130.0%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">8.70</td>
+<td class="tr p">2.00</td>
+<td class="tr bold">10.70</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-high">133.8%</span></td>
+<td class="tr ">0.00</td>
+<td class="tr">0</td><td class="tr">11</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr">6.00</td>
+<td class="tr">21</td><td class="tr">0</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr"><span class="zt-badge zt-light">3</span></td>
+</tr><tr>
+<td class="tl hl-name">韦海毅</td><td class="hl-role">片区服务经理</td><td>林梓纯</td>
+<td class="tr p">894.00</td>
+<td class="tr p">118.00</td>
+<td class="tr bold">1012.00</td>
+<td class="tr"><span class="rate-bg rate-high">92.0%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">6.30</td>
+<td class="tr p">1.50</td>
+<td class="tr bold">7.80</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-high">97.5%</span></td>
+<td class="tr n">0.20</td>
+<td class="tr">1</td><td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-low">12.5%</span></td>
+<td class="tr">5.00</td>
+<td class="tr">94</td><td class="tr">1</td>
+<td class="tr"><span class="rate-bg rate-low">1.1%</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">3</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+</tr><tr>
+<td class="tl hl-name">房开平</td><td class="hl-role">片区服务经理</td><td>徐仰德</td>
+<td class="tr p">237.00</td>
+<td class="tr p">40.00</td>
+<td class="tr bold">277.00</td>
+<td class="tr"><span class="rate-bg rate-low">25.2%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">1.50</td>
+<td class="tr p">0.50</td>
+<td class="tr bold">2.00</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-low">25.0%</span></td>
+<td class="tr n">6.00</td>
+<td class="tr">1</td><td class="tr">4</td>
+<td class="tr"><span class="rate-bg rate-low">25.0%</span></td>
+<td class="tr">5.00</td>
+<td class="tr">120</td><td class="tr">2</td>
+<td class="tr"><span class="rate-bg rate-low">1.7%</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">邓采杰</td><td class="hl-role">片区服务经理</td><td>林浩敏</td>
+<td class="tr p">129.00</td>
+<td class="tr ">0.00</td>
+<td class="tr bold">129.00</td>
+<td class="tr"><span class="rate-bg rate-low">11.7%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">1.00</td>
+<td class="tr ">0.00</td>
+<td class="tr bold">1.00</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-low">12.5%</span></td>
+<td class="tr n">7.00</td>
+<td class="tr">1</td><td class="tr">1</td>
+<td class="tr"><span class="rate-bg rate-high">100.0%</span></td>
+<td class="tr">5.00</td>
+<td class="tr">99</td><td class="tr">5</td>
+<td class="tr"><span class="rate-bg rate-low">5.1%</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-mid">6</span></td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">蔡锐填</td><td class="hl-role">片区服务经理</td><td>林洁纯</td>
+<td class="tr p">563.00</td>
+<td class="tr p">349.00</td>
+<td class="tr bold">912.00</td>
+<td class="tr"><span class="rate-bg rate-high">82.9%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">3.60</td>
+<td class="tr p">6.50</td>
+<td class="tr bold">10.10</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-high">126.2%</span></td>
+<td class="tr ">0.00</td>
+<td class="tr">1</td><td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-low">12.5%</span></td>
+<td class="tr">5.00</td>
+<td class="tr">46</td><td class="tr">1</td>
+<td class="tr"><span class="rate-bg rate-low">2.2%</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-mid">4</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-mid">6</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+</tr><tr>
+<td class="tl hl-name">谭明超</td><td class="hl-role">片区服务经理</td><td>-</td>
+<td class="tr p">738.57</td>
+<td class="tr p">180.00</td>
+<td class="tr bold">918.57</td>
+<td class="tr"><span class="rate-bg rate-high">83.5%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">4.80</td>
+<td class="tr p">4.00</td>
+<td class="tr bold">8.80</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-high">110.0%</span></td>
+<td class="tr ">0.00</td>
+<td class="tr">1</td><td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-low">12.5%</span></td>
+<td class="tr">5.00</td>
+<td class="tr">0</td><td class="tr">0</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+</tr><tr>
+<td class="tl hl-name">李若洪</td><td class="hl-role">片区服务经理</td><td>李土金</td>
+<td class="tr p">59.00</td>
+<td class="tr p">360.00</td>
+<td class="tr bold">419.00</td>
+<td class="tr"><span class="rate-bg rate-low">38.1%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">0.30</td>
+<td class="tr p">8.00</td>
+<td class="tr bold">8.30</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-high">103.8%</span></td>
+<td class="tr ">0.00</td>
+<td class="tr">1</td><td class="tr">1</td>
+<td class="tr"><span class="rate-bg rate-high">100.0%</span></td>
+<td class="tr">5.00</td>
+<td class="tr">152</td><td class="tr">5</td>
+<td class="tr"><span class="rate-bg rate-low">3.3%</span></td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">陈锦聪</td><td class="hl-role">片区服务经理</td><td>李莉</td>
+<td class="tr p">278.00</td>
+<td class="tr p">349.00</td>
+<td class="tr bold">627.00</td>
+<td class="tr"><span class="rate-bg rate-mid">57.0%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">2.00</td>
+<td class="tr p">7.00</td>
+<td class="tr bold">9.00</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-high">112.5%</span></td>
+<td class="tr ">0.00</td>
+<td class="tr">0</td><td class="tr">4</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr">6.00</td>
+<td class="tr">89</td><td class="tr">5</td>
+<td class="tr"><span class="rate-bg rate-low">5.6%</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">谢维锐</td><td class="hl-role">片区服务经理</td><td>徐小安</td>
+<td class="tr p">217.00</td>
+<td class="tr p">40.00</td>
+<td class="tr bold">257.00</td>
+<td class="tr"><span class="rate-bg rate-low">23.4%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">1.30</td>
+<td class="tr p">0.50</td>
+<td class="tr bold">1.80</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-low">22.5%</span></td>
+<td class="tr n">6.20</td>
+<td class="tr">3</td><td class="tr">4</td>
+<td class="tr"><span class="rate-bg rate-mid">75.0%</span></td>
+<td class="tr">3.00</td>
+<td class="tr">54</td><td class="tr">1</td>
+<td class="tr"><span class="rate-bg rate-low">1.9%</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+</tr><tr>
+<td class="tl hl-name">潘庆洪</td><td class="hl-role">片区服务经理</td><td>卢井钦</td>
+<td class="tr p">79.00</td>
+<td class="tr p">120.00</td>
+<td class="tr bold">199.00</td>
+<td class="tr"><span class="rate-bg rate-low">18.1%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">0.50</td>
+<td class="tr p">2.50</td>
+<td class="tr bold">3.00</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-low">37.5%</span></td>
+<td class="tr n">5.00</td>
+<td class="tr">0</td><td class="tr">2</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr">6.00</td>
+<td class="tr">5</td><td class="tr">3</td>
+<td class="tr"><span class="rate-bg rate-mid">60.0%</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">潘富荣</td><td class="hl-role">片区服务经理</td><td>-</td>
+<td class="tr p">299.00</td>
+<td class="tr p">20.00</td>
+<td class="tr bold">319.00</td>
+<td class="tr"><span class="rate-bg rate-low">29.0%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">2.00</td>
+<td class="tr p">0.25</td>
+<td class="tr bold">2.25</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-low">28.1%</span></td>
+<td class="tr n">5.75</td>
+<td class="tr">1</td><td class="tr">2</td>
+<td class="tr"><span class="rate-bg rate-mid">50.0%</span></td>
+<td class="tr">5.00</td>
+<td class="tr">0</td><td class="tr">0</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">卢彤</td><td class="hl-role">片区服务经理</td><td>-</td>
+<td class="tr p">328.00</td>
+<td class="tr p">40.00</td>
+<td class="tr bold">368.00</td>
+<td class="tr"><span class="rate-bg rate-low">33.5%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">2.50</td>
+<td class="tr p">0.50</td>
+<td class="tr bold">3.00</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-low">37.5%</span></td>
+<td class="tr n">5.00</td>
+<td class="tr">1</td><td class="tr">3</td>
+<td class="tr"><span class="rate-bg rate-low">33.3%</span></td>
+<td class="tr">5.00</td>
+<td class="tr">0</td><td class="tr">0</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+</tr><tr>
+<td class="tl hl-name">李伟明</td><td class="hl-role">片区服务经理</td><td>-</td>
+<td class="tr p">1743.00</td>
+<td class="tr ">0.00</td>
+<td class="tr bold">1743.00</td>
+<td class="tr"><span class="rate-bg rate-high">158.5%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">11.50</td>
+<td class="tr ">0.00</td>
+<td class="tr bold">11.50</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-high">143.8%</span></td>
+<td class="tr ">0.00</td>
+<td class="tr">1</td><td class="tr">7</td>
+<td class="tr"><span class="rate-bg rate-low">14.3%</span></td>
+<td class="tr">5.00</td>
+<td class="tr">25</td><td class="tr">2</td>
+<td class="tr"><span class="rate-bg rate-low">8.0%</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-light">3</span></td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">黄际文</td><td class="hl-role">片区服务经理</td><td>卢勇杭</td>
+<td class="tr p">287.00</td>
+<td class="tr ">0.00</td>
+<td class="tr bold">287.00</td>
+<td class="tr"><span class="rate-bg rate-low">26.1%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">2.00</td>
+<td class="tr ">0.00</td>
+<td class="tr bold">2.00</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-low">25.0%</span></td>
+<td class="tr n">6.00</td>
+<td class="tr">1</td><td class="tr">3</td>
+<td class="tr"><span class="rate-bg rate-low">33.3%</span></td>
+<td class="tr">5.00</td>
+<td class="tr">37</td><td class="tr">1</td>
+<td class="tr"><span class="rate-bg rate-low">2.7%</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">何瑞辉</td><td class="hl-role">片区服务经理</td><td>邝晓锐</td>
+<td class="tr p">387.00</td>
+<td class="tr p">110.00</td>
+<td class="tr bold">497.00</td>
+<td class="tr"><span class="rate-bg rate-low">45.2%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">3.00</td>
+<td class="tr p">2.00</td>
+<td class="tr bold">5.00</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-mid">62.5%</span></td>
+<td class="tr n">3.00</td>
+<td class="tr">0</td><td class="tr">4</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr">6.00</td>
+<td class="tr">63</td><td class="tr">1</td>
+<td class="tr"><span class="rate-bg rate-low">1.6%</span></td>
+<td class="tr na">0</td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr na">0</td>
+</tr><tr>
+<td class="tl hl-name">陈若锋</td><td class="hl-role">片区服务经理</td><td>-</td>
+<td class="tr p">398.00</td>
+<td class="tr ">0.00</td>
+<td class="tr bold">398.00</td>
+<td class="tr"><span class="rate-bg rate-low">36.2%</span></td>
+<td class="tr na">-</td>
+<td class="tr p">3.00</td>
+<td class="tr ">0.00</td>
+<td class="tr bold">3.00</td>
+<td class="tr">8</td>
+<td class="tr"><span class="rate-bg rate-low">37.5%</span></td>
+<td class="tr n">5.00</td>
+<td class="tr">1</td><td class="tr">2</td>
+<td class="tr"><span class="rate-bg rate-mid">50.0%</span></td>
+<td class="tr">5.00</td>
+<td class="tr">91</td><td class="tr">0</td>
+<td class="tr"><span class="rate-bg rate-low">0.0%</span></td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr na">0</td>
+<td class="tr"><span class="zt-badge zt-light">2</span></td>
+<td class="tr"><span class="zt-badge zt-light">1</span></td>
+<td class="tr na">0</td>
+</tr><tr class="total-row">
+<td class="tl" style="color:#1a237e;">合计</td><td></td><td></td>
+<td class="tr">8785.57</td>
+<td class="tr">2153.00</td>
+<td class="tr">10938.57</td>
+<td class="tr"><span class="rate-bg rate-mid">58.5%</span></td>
+<td class="tr na">-</td>
+<td class="tr">59.40</td>
+<td class="tr">38.25</td>
+<td class="tr">97.65</td>
+<td class="tr">136</td>
+<td class="tr"><span class="rate-bg rate-mid">71.8%</span></td>
+<td class="tr">38.35</td>
+<td class="tr">17</td><td class="tr">88</td>
+<td class="tr"><span class="rate-bg rate-low">19.3%</span></td>
+<td class="tr">85.00</td>
+<td class="tr">896</td><td class="tr">27</td>
+<td class="tr"><span class="rate-bg rate-low">3.0%</span></td>
+<td class="tr"><span class="zt-badge zt-mid">9</span></td>
+<td class="tr"><span class="zt-badge zt-severe">30</span></td>
+<td class="tr"><span class="zt-badge zt-severe">11</span></td>
+<td class="tr"><span class="zt-badge zt-severe">28</span></td>
+<td class="tr"><span class="zt-badge zt-severe">13</span></td>
+</tr></tbody></table></div></div>
+<div class="panel" style="padding:10px 14px;font-size:11px;color:#444;">
+<div style="font-weight:700;color:#1a237e;border-bottom:2px solid #e8eaf6;padding-bottom:4px;margin-bottom:6px;">📊 片区服务经理 各指标领先落后分析<div style="margin-bottom:6px;"><span style="font-weight:600;color:#1a237e;">④ 关键一单转化率</span><br><div style="padding-left:20px;font-size:11px;"><span style="color:#2e7d32;">▲ <b>潘庆洪</b> 60.0%（派单5、转化3）</span>&nbsp;&nbsp;<span style="color:#2e7d32;">▲ <b>李伟明</b> 8.0%（派单25、转化2）</span>&nbsp;&nbsp;<span style="color:#c62828;">▼ <b>陈若锋</b> 0.0%（派单91、转化0）</span>&nbsp;&nbsp;<span style="color:#c62828;">▼ <b>卢彤</b> 0.0%（派单0、转化0）</span>&nbsp;&nbsp;</div></div></div>
+<div style="margin-bottom:6px;"><span style="font-weight:600;color:#1a237e;">① 价值积分</span><br><div style="padding-left:20px;font-size:11px;"><span style="color:#2e7d32;">▲ <b>李伟明</b> 1743.00</span>&nbsp;&nbsp;<span style="color:#2e7d32;">▲ <b>谢国栋</b> 1430.00</span>&nbsp;&nbsp;</div><div style="padding-left:20px;font-size:11px;"><span style="color:#c62828;">▼ <b>邓采杰</b> 129.00</span>&nbsp;&nbsp;<span style="color:#c62828;">▼ <b>潘庆洪</b> 199.00</span>&nbsp;&nbsp;</div></div>
+<div style="margin-bottom:6px;"><span style="font-weight:600;color:#1a237e;">② 增存高套完成率</span><br><div style="padding-left:20px;font-size:11px;"><span style="color:#2e7d32;">▲ <b>李伟明</b> 143.8%</span>&nbsp;&nbsp;<span style="color:#2e7d32;">▲ <b>谢国栋</b> 133.8%</span>&nbsp;&nbsp;</div><div style="padding-left:20px;font-size:11px;"><span style="color:#c62828;">▼ <b>邓采杰</b> 12.5%</span>&nbsp;&nbsp;<span style="color:#c62828;">▼ <b>谢维锐</b> 22.5%</span>&nbsp;&nbsp;</div></div>
+<div style="margin-bottom:6px;"><span style="font-weight:600;color:#1a237e;">③ 杠保成功率</span><br><div style="padding-left:20px;font-size:11px;"><span style="color:#2e7d32;">▲ <b>邓采杰</b> 100.0%</span>&nbsp;&nbsp;<span style="color:#2e7d32;">▲ <b>李若洪</b> 100.0%</span>&nbsp;&nbsp;</div><div style="padding-left:20px;font-size:11px;"><span style="color:#c62828;">▼ <b>何瑞辉</b> 0.0%</span>&nbsp;&nbsp;<span style="color:#c62828;">▼ <b>潘庆洪</b> 0.0%</span>&nbsp;&nbsp;</div></div>
+<div style="margin-bottom:2px;"><span style="font-weight:600;color:#1a237e;">⑤ 质态关注</span></div>
+<div style="padding-left:20px;font-size:11px;"><span style="color:#c62828;">⚠️ <b>徐显泽</b> 共17项异常：T0无效9、T1无效6、T1无托收2</span></div><div style="padding-left:20px;font-size:11px;"><span style="color:#c62828;">⚠️ <b>蔡锐填</b> 共12项异常：T0无效4、T1无效6、T1无托收2</span></div><div style="padding-left:20px;font-size:11px;"><span style="color:#c62828;">⚠️ <b>邓采杰</b> 共8项异常：T0未满卡1、T0无托收1、T1无效6</span></div>
+</div>
+
+<div class="note-panel">
+  <b>说明：</b>
+  <span style="color:#2e7d32;">■ 绿色</span> = 正值/达标(≥80%)
+  <span style="color:#e65100;margin-left:12px;">■ 橙色</span> = 中等(50-80%)
+  <span style="color:#c62828;margin-left:12px;">■ 红色</span> = 低(&lt;50%)
+  <span style="color:#d0d0d0;margin-left:12px;">—</span> = 待补充/无数据
+  <span style="margin-left:12px;">📌 片区经理存量数据来自CP（片区服务经理）；上月数据待补充；得分预测 = 新装得分 + 存量得分 + 杠保得分 + 拆挽得分</span>
+</div>
+<div class="footer">数据来源：新装高套竣工清单、天河存量高套及基本面竣工清单、天河关键一单清单、杠保清单、质态相关清单、拆挽清单 | 生成时间：2026-07-05 22:27</div>
+</div>
+</body>
+</html>
